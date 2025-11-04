@@ -19,25 +19,25 @@ st.title("Citrix Data Dashboard")
 # =====================================================
 # FILE LOAD — DIRECTLY FROM GITHUB (NO UPLOADS NEEDED)
 # =====================================================
-import pandas as pd
-import streamlit as st
 
 st.sidebar.header("🌐 Loading Data from GitHub")
 
 @st.cache_data
 def load_csv_from_github(url):
     try:
-        return pd.read_csv(url)
+        return pd.read_csv(url, encoding='latin1')
+    except UnicodeDecodeError:
+        return pd.read_csv(url, encoding='ISO-8859-1')
     except Exception as e:
         st.error(f"❌ Error loading {url}: {e}")
         st.stop()
 
-# --- Your actual dataset URLs ---
+# ---- Your actual dataset URLs ----
 main_url = "https://raw.githubusercontent.com/Guitarjakie98/BuyingCenter/main/combined_DataStore%20copy.csv"
 demand_url = "https://raw.githubusercontent.com/Guitarjakie98/BuyingCenter/main/Demandbase_techno_F5_analysis.parquet%20copy"
 contacts_url = "https://raw.githubusercontent.com/Guitarjakie98/BuyingCenter/main/bqcontactdata%20copy.csv"
 
-# --- Load datasets ---
+# ---- Load datasets ----
 df = load_csv_from_github(main_url)
 db_df = load_csv_from_github(demand_url)
 contacts_df = load_csv_from_github(contacts_url)
