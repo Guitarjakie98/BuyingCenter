@@ -16,28 +16,33 @@ st.set_page_config(
 
 st.title("Citrix Data Dashboard")
 
-# =====================================================
-# AUTO-CONVERT TO PARQUET FOR PERFORMANCE
-# =====================================================
-@st.cache_data(show_spinner=False)
-def load_data_auto(path):
-    parquet_path = os.path.splitext(path)[0] + ".parquet"
+# ============================================
+# FILE UPLOADS — CLOUD-SAFE VERSION
+# ============================================
+st.sidebar.header("📂 Upload CSV Files")
+
+main_file = st.sidebar.file_uploader("Upload Main CSV", type=["csv"])
+demand_file = st.sidebar.file_uploader("Upload Demandbase CSV", type=["csv"])
+contact_file = st.sidebar.file_uploader("Upload Contact CSV", type=["csv"])
+
+if not (main_file and demand_file and contact_file):
+    st.warning("Please upload all three CSVs to continue.")
+    st.stop()
+
+@st.cache_data
+def load_csv(file):
     try:
-        if os.path.exists(parquet_path) and os.path.getmtime(parquet_path) >= os.path.getmtime(path):
-            df = pd.read_parquet(parquet_path)
-            return df, "Loaded from Parquet ✅"
-
-        st.info(f"Converting {os.path.basename(path)} → Parquet (first-time only)...")
-        df = pd.read_csv(path, dtype=str, low_memory=False)
-        df.columns = df.columns.str.strip()
-        df = df.fillna("")  # Prevent Arrow type issues
-        df.to_parquet(parquet_path, index=False)
-        return df, f"Converted and saved to {os.path.basename(parquet_path)} ✅"
+        return pd.read_csv(file)
     except Exception as e:
-        st.error(f"Error loading {os.path.basename(path)}: {e}")
-        df = pd.read_csv(path, low_memory=False)
-        return df, "Loaded from CSV ⚠️"
+        st.error(f"Error loading {file.name if hasattr(file, 'name') else 'file'}: {e}")
+        st.stop()
 
+# Load uploaded CSVs
+df = load_csv(main_file)
+db_df = load_csv(demand_file)
+contacts_df = load_csv(contact_file)
+
+st.sidebar.success("✅ Files uploaded successfully!")
 
 # =====================================================
 # FILE PATHS
