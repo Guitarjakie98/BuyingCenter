@@ -58,9 +58,25 @@ CONTACT_PATH = st.sidebar.text_input("Enter Contact CSV path:", default_contacts
 if not DATA_PATH or not DB_PATH or not CONTACT_PATH:
     st.stop()
 
-# =====================================================
-# LOAD DATA
-# =====================================================
+# ============================================================
+# LOAD DATA — AUTO-DETECT LOCAL OR GITHUB SOURCE
+# ============================================================
+
+def load_data_auto(path):
+    """Loads CSVs from either GitHub URLs or local paths safely."""
+    try:
+        if path.startswith("http"):
+            df = pd.read_csv(path)
+            msg = f"Loaded from GitHub: {path}"
+        else:
+            df = pd.read_csv(path)
+            msg = f"Loaded from local file: {path}"
+        return df, msg
+    except Exception as e:
+        st.error(f"❌ Error loading {path}: {e}")
+        st.stop()
+
+# Load all datasets
 df, df_msg = load_data_auto(DATA_PATH)
 db_df, db_msg = load_data_auto(DB_PATH)
 contacts_df, contacts_msg = load_data_auto(CONTACT_PATH)
@@ -341,14 +357,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# =====================================================
-# DISPLAY CONTACT CARDS (FIXED HTML RENDER)
-# =====================================================
-
-# =====================================================
-# DISPLAY CONTACT CARDS (with engagement dots)
-# =====================================================
-
 # Inject CSS styles
 st.markdown("""
 <style>
@@ -377,6 +385,7 @@ st.markdown("""
 .red { background-color: #C0392B; }
 .yellow { background-color: #FFD600; color: black; }
 .purple { background-color: #9B59B6; }
+.gray { background-color: #7F8C8D; }  /* <-- NEW for missing data */
 .contact-title {
     font-size: 11px;
     font-weight: 400;
@@ -401,6 +410,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
+# --- Normalize empty strings and "nan" to NaN so logic catches them ---
+filtered_contacts = filtered_contacts.replace(["", " ", "nan", "None"], pd.NA)
+
 # Build cards as a single flat string (no indentation!)
 cards_html = "<div class='contact-container'>"
 
@@ -408,11 +421,26 @@ for _, row in filtered_contacts.iterrows():
     name = row.get("party_unique_name", "Unknown")
     title = row.get("job_title", "")
     affinity = row.get("sales_affinity_code", "")
-    color = row.get("status_color", "red")
+
+    # --- Color logic based on data completeness and engagement ---
+    if pd.isna(title) or pd.isna(affinity):
+        color = "gray"                # Missing info
+    elif row.get("is_engaged", False):
+        color = "yellow"              # Engaged
+    else:
+        color = "purple"              # Default / complete
+
     engaged_dot = "<div class='engaged-dot'></div>" if row.get("is_engaged", False) else ""
 
     # No indentation, otherwise Streamlit escapes the HTML
-    cards_html += f"<div class='contact-card {color}'>{engaged_dot}<div>{name}</div><div class='contact-title'>{title}</div><div class='contact-affinity'>{affinity}</div></div>"
+    cards_html += f"""
+    <div class='contact-card {color}'>
+        {engaged_dot}
+        <div>{name}</div>
+        <div class='contact-title'>{title or ''}</div>
+        <div class='contact-affinity'>{affinity or ''}</div>
+    </div>
+    """
 
 cards_html += "</div>"
 
