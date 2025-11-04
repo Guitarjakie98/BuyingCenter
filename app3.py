@@ -16,33 +16,33 @@ st.set_page_config(
 
 st.title("Citrix Data Dashboard")
 
-# ============================================
-# FILE UPLOADS — CLOUD-SAFE VERSION
-# ============================================
-st.sidebar.header("📂 Upload CSV Files")
+# =====================================================
+# FILE LOAD — DIRECTLY FROM GITHUB (NO UPLOADS NEEDED)
+# =====================================================
+import pandas as pd
+import streamlit as st
 
-main_file = st.sidebar.file_uploader("Upload Main CSV", type=["csv"])
-demand_file = st.sidebar.file_uploader("Upload Demandbase CSV", type=["csv"])
-contact_file = st.sidebar.file_uploader("Upload Contact CSV", type=["csv"])
-
-if not (main_file and demand_file and contact_file):
-    st.warning("Please upload all three CSVs to continue.")
-    st.stop()
+st.sidebar.header("🌐 Loading Data from GitHub")
 
 @st.cache_data
-def load_csv(file):
+def load_csv_from_github(url):
     try:
-        return pd.read_csv(file)
+        return pd.read_csv(url)
     except Exception as e:
-        st.error(f"Error loading {file.name if hasattr(file, 'name') else 'file'}: {e}")
+        st.error(f"❌ Error loading {url}: {e}")
         st.stop()
 
-# Load uploaded CSVs
-df = load_csv(main_file)
-db_df = load_csv(demand_file)
-contacts_df = load_csv(contact_file)
+# --- Your actual dataset URLs ---
+main_url = "https://raw.githubusercontent.com/Guitarjakie98/BuyingCenter/main/combined_DataStore%20copy.csv"
+demand_url = "https://raw.githubusercontent.com/Guitarjakie98/BuyingCenter/main/Demandbase_techno_F5_analysis.parquet%20copy"
+contacts_url = "https://raw.githubusercontent.com/Guitarjakie98/BuyingCenter/main/bqcontactdata%20copy.csv"
 
-st.sidebar.success("✅ Files uploaded successfully!")
+# --- Load datasets ---
+df = load_csv_from_github(main_url)
+db_df = load_csv_from_github(demand_url)
+contacts_df = load_csv_from_github(contacts_url)
+
+st.sidebar.success("✅ Files loaded automatically from GitHub!")
 
 # =====================================================
 # FILE PATHS
